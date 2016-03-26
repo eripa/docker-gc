@@ -1,15 +1,10 @@
 # docker-gc
 
-* [Building](#building)
-* [Installing](#installing)
 * [Usage](#usage)
   * [Excluding Images From Garbage Collection](#excluding-images-from-garbage-collection)
   * [Excluding Containers From Garbage Collection](#excluding-containers-from-garbage-collection)
-  * [Running as a Docker Image](#running-as-a-docker-image)
-    * [Build the Docker Image](#build-the-docker-image)
-    * [Running as a Docker Container](#running-as-a-docker-container)
 
-A simple Docker container and image garbage collection script.
+A simple Docker container and image garbage collection script, originally developer by [Spotify](https://github.com/spotify/docker-gc). This is the ARM edition, for your precious SD-card space. 
 
 * Containers that exited more than an hour ago are removed.
 * Images that don't belong to any remaining container after that are removed.
@@ -21,44 +16,21 @@ busybox, etc) that are in use by containers. A naive `docker rmi $(docker images
 repositories when starting new containers even though the images themselves are
 still on disk.
 
-This script is intended to be run as a cron job, but you can also run it as a Docker
-container (see [below](#running-as-a-docker-container)).
+This script is intended to be run as a cron job.
 
-## Building the Debian Package
+#### Usage
 
+To make usage on ARM platforms easier I've just ported the part that is required to run this as a Docker container. Deb/RPM packages has been removed.
 
-```sh
-$ apt-get install git devscripts debhelper build-essential
-$ git clone https://github.com/spotify/docker-gc.git
-$ cd docker-gc
-$ debuild -us -uc -b
-```
-
-If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b`.
-
-
-## Installing the Debian Package
+The docker-gc container requires access to the docker socket in order to
+function, so you need to map it when running, e.g.:
 
 ```sh
-$ dpkg -i ../docker-gc_0.0.4_all.deb
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc eripa/docker-gc-arm
 ```
 
-This installs the `docker-gc` script into `/usr/sbin`. If you want it to
-run as a cron job, you can configure it now by dropping a file like this
-into `/etc/cron.hourly/`.
-
-```
-#!/bin/bash
-/usr/sbin/docker-gc
-```
-
-
-## Manual Usage
-
-To use the script manually, run `docker-gc`. The system user under
-which `docker-gc` runs needs to have read and write access to
-the `$STATE_DIR` environment variable which defaults to `/var/lib/docker-gc`.
-
+The `/etc` directory is also mapped so that it can read any exclude files
+that you've created.
 
 ### Excluding Images From Garbage Collection
 
@@ -105,7 +77,7 @@ in CI environments where dockers are being built, re-tagged, and pushed,
 you can enable a force flag to override this default.
 
 ```
-FORCE_IMAGE_REMOVAL=1 docker-gc
+$ docker run --rm -e FORCE_IMAGE_REMOVAL=1 -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc eripa/docker-gc-arm
 ```
 
 ### Forcing deletion of containers
@@ -116,7 +88,7 @@ containers accumulating.  If you run into this issue, you can force the removal
 of the container by setting the environment variable below:
 
 ```
-FORCE_CONTAINER_REMOVAL=1 docker-gc
+$ docker run --rm -e FORCE_CONTAINER_REMOVAL=1 -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc eripa/docker-gc-arm
 ```
 
 ### Excluding Recently Exited Containers and Images From Garbage Collection
@@ -124,7 +96,7 @@ FORCE_CONTAINER_REMOVAL=1 docker-gc
 By default, docker-gc will not remove a container if it exited less than 3600 seconds (1 hour) ago. In some cases you might need to change this setting (e.g. you need exited containers to stick around for debugging for several days). Set the `GRACE_PERIOD_SECONDS` variable to override this default.
 
 ```
-GRACE_PERIOD_SECONDS=86400 docker-gc
+$ docker run --rm -e GRACE_PERIOD_SECONDS=86400 -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc eripa/docker-gc-arm
 ```
 
 This setting also prevents the removal of images that have been created less than `GRACE_PERIOD_SECONDS` seconds ago.
@@ -133,37 +105,15 @@ This setting also prevents the removal of images that have been created less tha
 By default, docker-gc will proceed with deletion of containers and images. To test your command-line options set the `DRY_RUN` variable to override this default.
 
 ```
-DRY_RUN=1 docker-gc
+$ docker run --rm -e DRY_RUN=1 -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc eripa/docker-gc-arm
 ```
-
-
-## Running as a Docker Image
-
-A Dockerfile is provided as an alternative to a local installation. By default
-the container will start up, run a single garbage collection, and shut down.
 
 #### Building the Docker Image
-The image is currently built with Docker 1.6.2, but to build it against a newer
-Docker version (to ensure that the API version of the command-line interface
-matches with your Docker daemon), simply edit [the `ENV DOCKER_VERSION` line in
-`Dockerfile`][dockerfile-ENV] prior to the build step below.
+The image is currently built on Alpine Edge, as of writing this Docker 1.10.3. If you rebuild the image it should pull in the latest Docker from the Alpine repository.
 
-[dockerfile-ENV]: https://github.com/spotify/docker-gc/blob/fd6640fa8c133de53a0395a36e8dcbaf29842684/Dockerfile#L3
-
-Build the Docker image with `make -f Makefile.docker image` or:
+Build the Docker image with `make image` or:
 
 ```sh
-docker build -t spotify/docker-gc .
+docker build -t eripa/docker-gc .
 ```
 
-#### Running as a Docker Container
-
-The docker-gc container requires access to the docker socket in order to
-function, so you need to map it when running, e.g.:
-
-```sh
-$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
-```
-
-The `/etc` directory is also mapped so that it can read any exclude files
-that you've created.

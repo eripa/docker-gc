@@ -1,15 +1,15 @@
-FROM gliderlabs/alpine:3.2
+FROM container4armhf/armhf-alpine:edge
 
-ENV DOCKER_VERSION 1.6.2
+RUN echo "http://nl.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 
-# We get curl so that we can avoid a separate ADD to fetch the Docker binary, and then we'll remove it
-RUN apk --update add bash curl \
-  && curl -s https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION} > /bin/docker \
-  && chmod +x /bin/docker \
-  && apk del curl \
-  && rm -rf /var/cache/apk/*
+# We install docker and then copy the binary aside before removing docker again again
+RUN apk --update add docker bash \
+     && cp /usr/bin/docker /tmp/docker \
+     && apk del -r docker \
+     && mv /tmp/docker /usr/bin/docker \
+     && rm -rf /var/cache/apk/*
 
-COPY ./docker-gc /docker-gc
+COPY docker-gc /docker-gc
 
 VOLUME /var/lib/docker-gc
 

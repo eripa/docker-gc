@@ -1,10 +1,10 @@
-# docker-gc
+# docker-gc-arm
 
 * [Usage](#usage)
   * [Excluding Images From Garbage Collection](#excluding-images-from-garbage-collection)
   * [Excluding Containers From Garbage Collection](#excluding-containers-from-garbage-collection)
 
-A simple Docker container and image garbage collection script, originally developer by [Spotify](https://github.com/spotify/docker-gc). This is the ARM edition, for your precious SD-card space. 
+A simple Docker container and image garbage collection script, originally developed by [Spotify](https://github.com/spotify/docker-gc). This is the ARM edition, for your precious SD-card space. 
 
 * Containers that exited more than an hour ago are removed.
 * Images that don't belong to any remaining container after that are removed.

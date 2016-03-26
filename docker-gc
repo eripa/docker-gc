@@ -84,7 +84,11 @@ EXCLUDE_CONTAINER_IDS_FILE="exclude_container_ids"
 function date_parse {
   if date --utc >/dev/null 2>&1; then
     # GNU/date
-    echo $(date -u --date "${1}" "+%s")
+    if ! date -u --date "${1}" "+%s" &> /dev/null ; then
+       echo "133600000" # fake date to 2012
+    else
+       echo $(date -u --date "${1}" "+%s")
+    fi
   else
     # BSD/date
     echo $(date -j -u -f "%F %T" "${1}" "+%s")
